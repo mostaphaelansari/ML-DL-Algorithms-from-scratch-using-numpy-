@@ -45,7 +45,7 @@ class LinearRegression:
         self.bias = 0
         
         # Gradient descent
-        for i in range(self.n_iterations):
+        for _ in range(self.n_iterations):
             # Forward pass (predictions)
             y_predicted = self._predict(X)
             
