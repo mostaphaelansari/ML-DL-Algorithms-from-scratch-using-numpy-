@@ -1,235 +1,265 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import joblib
+from sklearn.datasets import make_regression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 import argparse
+import joblib
 import os
 import time
 import logging
 from pathlib import Path
 
-#local models
-
-from linear_regression.model import LinearRegression
-from utils.metrics import mean_squared_error , mean_absolute_error ,r2_score
-
-
-#Set up logging
-
+# Set up logging
 logging.basicConfig(
-    level= logging.INFO,
-    format= '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
+# Import our custom linear regression model
+from model import LinearRegression
 
-# Import our model from model.py 
-
-def load_model(model_path = 'output/linear_regression_model.joblib'):
+def load_data(use_sklearn=True, n_samples=1000, n_features=1, noise=20, test_size=0.2, random_state=42, 
+            data_path=None, output_dir='output'):
     """
-    Load a trained model using joblib
+    Load or generate regression data
     
     Parameters:
     -----------
-    model_path : str
-        Path to the saved model
-        
-    Returns:
-    --------
-    model : LinearRegression
-        Loaded model
-    """
-    try:
-        logger.info(f"Loading model from {model_path}")
-        model = joblib.load(model_path)
-        return model
-    except FileNotFoundError:
-        logger.error(f"Model file not found : {model_path}")
-        raise
-    except Exception as e:
-        logger.error(f"Error loading model : {e}")
-        raise
-
-def load_test_data(X_test_path='output/X_test.npy', y_test_path='output/y_test.npy') -> tuple:
-    """
-    Load test data with error handling
-    
-    Parameters:
-    -----------
-    X_test_path : str
-        Path to X test data
-    y_test_path : str
-        Path to y test data
+    use_sklearn : bool
+        Whether to generate synthetic data using sklearn
+    n_samples : int
+        Number of samples to generate
+    n_features : int
+        Number of features to generate
+    noise : float
+        Noise to add to the data
+    test_size : float
+        Test split ratio
+    random_state : int
+        Random seed
+    data_path : str, optional
+        Path to custom dataset
+    output_dir : str
+        Directory to save outputs
         
     Returns:
     --------
     tuple
-        (X_test, y_test)
+        (X_train, X_test, y_train, y_test)
     """
     try:
-        logger.info(f"Loading test data from {X_test_path} and {y_test_path}")
-        X_test = np.load(X_test_path, allow_pickle=True)
-        y_test = np.load(y_test_path, allow_pickle=True)
-        
-        # Ensure y is flat (following sklearn convention)
-        if y_test.ndim > 1:
-            y_test = y_test.ravel()
+        if use_sklearn:
+            # Generate synthetic data
+            logger.info(f"Generating synthetic data with {n_samples} samples and {n_features} features")
+            X, y = make_regression(n_samples=n_samples, 
+                                n_features=n_features, 
+                                noise=noise, 
+                                random_state=random_state)
             
-        return X_test, y_test
-    except FileNotFoundError as e:
-        logger.error(f"Test data file not found: {e}")
-        raise
+            # Keep y as a flat array (sklearn convention)
+            y = y.ravel()
+        else:
+            # Load custom dataset if provided
+            if data_path:
+                logger.info(f"Loading data from {data_path}")
+                try:
+                    data = np.loadtxt(data_path, delimiter=',')
+                    X = data[:, :-1]
+                    y = data[:, -1].ravel()  # Keep as flat array
+                except Exception as e:
+                    logger.error(f"Error loading data from {data_path}: {e}")
+                    logger.warning("Falling back to synthetic data")
+                    X, y = make_regression(n_samples=n_samples, 
+                                        n_features=n_features, 
+                                        noise=noise, 
+                                        random_state=random_state)
+                    y = y.ravel()
+            else:
+                # Fallback to synthetic data
+                logger.info("No custom data path provided, using synthetic data")
+                X, y = make_regression(n_samples=n_samples, 
+                                    n_features=n_features, 
+                                    noise=noise, 
+                                    random_state=random_state)
+                y = y.ravel()
+        
+        # Split the data
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=random_state
+        )
+        
+        # Standardize features
+        scaler = StandardScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
+        
+        # Save the scaler for later use
+        output_path = Path(output_dir)
+        scaler_path = output_path / 'scaler.joblib'
+        
+        try:
+            joblib.dump(scaler, scaler_path)
+            logger.info(f"Scaler saved to {scaler_path}")
+        except Exception as e:
+            logger.error(f"Error saving scaler: {e}")
+        
+        return X_train, X_test, y_train, y_test
+        
     except Exception as e:
-        logger.error(f"Error loading test data: {e}")
+        logger.error(f"Unexpected error in load_data: {e}")
         raise
 
-def evaluate_model(model, X_test :np.ndarray, y_test :np.ndarray) -> dict : 
+def plot_cost_history(cost_history, save_path='cost_history.png'):
     """
-    Evaluate the model on test data
+    Plot the cost history
+    
+    Parameters:
+    -----------
+    cost_history : list
+        Cost values for each iteration
+    save_path : str
+        Path to save the plot
+    """
+    try:
+        plt.figure(figsize=(10, 6))
+        plt.plot(range(len(cost_history)), cost_history)
+        plt.title('Cost History')
+        plt.xlabel('Iteration')
+        plt.ylabel('Cost')
+        plt.grid(True)
+        plt.tight_layout()
+        
+        # Ensure directory exists
+        save_dir = os.path.dirname(save_path)
+        if save_dir and not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+            
+        plt.savefig(save_path, dpi=300)
+        plt.close()
+        logger.info(f"Cost history plot saved to {save_path}")
+    except Exception as e:
+        logger.error(f"Error creating cost history plot: {e}")
+
+
+def train_model(X_train, y_train, learning_rate=0.01, n_iterations=1000):
+    """
+    Train the linear regression model
+    
+    Parameters:
+    -----------
+    X_train : numpy.ndarray
+        Training features
+    y_train : numpy.ndarray
+        Training targets
+    learning_rate : float
+        Learning rate for gradient descent
+    n_iterations : int
+        Number of iterations for gradient descent
+        
+    Returns:
+    --------
+    model : LinearRegression
+        Trained model
+    """
+    start_time = time.time()
+    
+    # Initialize and train the model
+    model = LinearRegression(learning_rate=learning_rate, n_iterations=n_iterations)
+    model.fit(X_train, y_train)
+    
+    training_time = time.time() - start_time
+    print(f"Training completed in {training_time:.2f} seconds")
+    
+    return model
+
+def save_model(model, save_path='linear_regression_model.joblib'):
+    """
+    Save the trained model using joblib
     
     Parameters:
     -----------
     model : LinearRegression
         Trained model
-    X_test : numpy.ndarray
-        Test features
-    y_test : numpy.ndarray
-        Test targets
-        
-    Returns:
-    --------
-    dict
-        Dictionary of metrics
-    """
-    start_time = time.time()
-    
-    # Make predictions
-    y_pred = model.predict(X_test)
-    
-    inference_time = time.time() - start_time
-    
-    # Calculate metrics
-    mse = mean_squared_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
-    mae = mean_absolute_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
-    
-    # Calculate model size
-    model_size = 0
-    if hasattr(model, 'weights'):
-        model_size += model.weights.size * model.weights.itemsize
-    if hasattr(model, 'bias'):
-        model_size += 8  # Assuming bias is a float64
-    
-    return {
-        'mse': mse,
-        'rmse': rmse,
-        'mae': mae,
-        'r2': r2,
-        'inference_time': inference_time,
-        'model_size': model_size
-    }
-def plot_predictions(X_test :np.ndarray , y_test : np.ndarray ,y_pred :np.ndarray ,save_path='output/predictions.png'):
-    # If we have more than 1 feature, only use the first one for plotting
-    if X_test.shape[1] > 1:
-        X_plot = X_test[:, 0]
-    else:
-        X_plot = X_test.flatten()
-    
-    plt.figure(figsize=(12, 8))
-    
-    plt.scatter(X_plot, y_test, color='blue', label='Actual')
-    plt.scatter(X_plot, y_pred, color='red', alpha=0.5, label='Predicted')
-    
-    plt.title('Actual vs Predicted Values')
-    plt.xlabel('Feature')
-    plt.ylabel('Target')
-    plt.legend()
-    plt.grid(True)
-    
-    plt.savefig(save_path)
-    plt.close()
-
-def plot_residuals(y_test, y_pred, save_path='output/residuals.png'):
-    """
-    Plot residuals to check for patterns
-    
-    Parameters:
-    -----------
-    y_test : numpy.ndarray
-        True target values
-    y_pred : numpy.ndarray
-        Predicted values
     save_path : str
-        Path to save the plot
+        Path to save the model
     """
-    residuals = y_test - y_pred
-    
-    plt.figure(figsize=(12, 8))
-    
-    plt.scatter(y_pred, residuals, color='blue', alpha=0.7)
-    plt.axhline(y=0, color='r', linestyle='-')
-    
-    plt.title('Residual Plot')
-    plt.xlabel('Predicted Values')
-    plt.ylabel('Residuals')
-    plt.grid(True)
-    
-    plt.savefig(save_path)
-    plt.close()
+    try:
+        # Ensure directory exists
+        save_dir = os.path.dirname(save_path)
+        if save_dir and not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+            
+        joblib.dump(model, save_path)
+        logger.info(f"Model saved to {save_path}")
+    except Exception as e:
+        logger.error(f"Error saving model: {e}")
+
 
 def main():
-    #parse arguments 
-    parser = argparse.ArgumentParser(description='Test a trained linear regression model')
-    parser.add_argument('--model_path', type=str, default='output/linear_regression_model.joblib', 
-                        help='Path to the saved model')
-    parser.add_argument('--X_test_path', type=str, default='output/X_test.npy',
-                        help='Path to X test data')
-    parser.add_argument('--y_test_path', type=str, default='output/y_test.npy',
-                        help='Path to y test data')
-    parser.add_argument('--output_dir', type=str, default='output',
-                        help='Directory to save outputs')
+    # Parse arguments
+    parser = argparse.ArgumentParser(description='Train a linear regression model')
+    parser.add_argument('--learning_rate', type=float, default=0.01, help='Learning rate')
+    parser.add_argument('--n_iterations', type=int, default=1000, help='Number of iterations')
+    parser.add_argument('--n_samples', type=int, default=1000, help='Number of samples')
+    parser.add_argument('--n_features', type=int, default=1, help='Number of features')
+    parser.add_argument('--noise', type=float, default=20, help='Noise level')
+    parser.add_argument('--output_dir', type=str, default='output', help='Output directory')
+    parser.add_argument('--data_path', type=str, default=None, help='Path to custom dataset')
+    parser.add_argument('--random_state', type=int, default=42, help='Random seed')
     args = parser.parse_args()
-
-    try :
+    
+    try:
         # Create output directory if it doesn't exist
         output_dir = Path(args.output_dir)
         output_dir.mkdir(exist_ok=True, parents=True)
         
-        logger.info("Starting model evaluation")
+        logger.info(f"Starting model training with {args.n_iterations} iterations")
         
-        # Load model and test data
-        model = load_model(args.model_path)
-        X_test, y_test = load_test_data(args.X_test_path, args.y_test_path)
+        # Load data
+        X_train, X_test, y_train, y_test = load_data(
+            n_samples=args.n_samples,
+            n_features=args.n_features,
+            noise=args.noise,
+            random_state=args.random_state,
+            data_path=args.data_path,
+            output_dir=args.output_dir
+        )
         
-        # Make predictions
-        y_pred = model.predict(X_test)
+        # Train the model
+        model = train_model(
+            X_train, 
+            y_train, 
+            learning_rate=args.learning_rate,
+            n_iterations=args.n_iterations
+        )
         
-        # Evaluate the model
-        metrics = evaluate_model(model, X_test, y_test)
+        # Plot cost history
+        plot_cost_history(model.cost_history, save_path=output_dir / 'cost_history.png')
         
-        # Print metrics
-        logger.info("\nModel Evaluation Metrics:")
-        logger.info(f"MSE: {metrics['mse']:.4f}")
-        logger.info(f"RMSE: {metrics['rmse']:.4f}")
-        logger.info(f"MAE: {metrics['mae']:.4f}")
-        logger.info(f"R² Score: {metrics['r2']:.4f}")
-        logger.info(f"Inference Time: {metrics['inference_time']:.6f} seconds")
-        logger.info(f"Model Size: {metrics['model_size'] / 1024:.2f} KB")
+        # Evaluate on training data
+        train_score = model.score(X_train, y_train)
+        logger.info(f"Training R² Score: {train_score:.4f}")
         
-        # If we have weights, print them
-        if hasattr(model, 'weights'):
-            logger.info("\nModel Parameters:")
-            logger.info(f"Weights: {model.weights}")
-            logger.info(f"Bias: {model.bias}")
+        # Evaluate on test data
+        test_score = model.score(X_test, y_test)
+        logger.info(f"Test R² Score: {test_score:.4f}")
         
-        # Create visualizations
-        plot_predictions(X_test, y_test, y_pred, save_path=output_dir / 'predictions.png')
-        plot_residuals(y_test, y_pred, save_path=output_dir / 'residuals.png')
+        # Save the model
+        model_path = output_dir / 'linear_regression_model.joblib'
+        save_model(model, save_path=model_path)
         
-        logger.info("\nVisualization plots saved to output directory")
-        
+        # Save test data for later evaluation
+        try:
+            np.save(output_dir / 'X_test.npy', X_test)
+            np.save(output_dir / 'y_test.npy', y_test)
+            logger.info(f"Test data saved to {output_dir}")
+        except Exception as e:
+            logger.error(f"Error saving test data: {e}")
+            
     except Exception as e:
-        logger.error(f"Error in model evaluation: {e}")
+        logger.error(f"Error in main execution: {e}")
         raise
 
 if __name__ == '__main__':
