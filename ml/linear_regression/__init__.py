@@ -11,4 +11,4 @@ __all__ = ['LinearRegression']
 
 # Package metadata
 __version__ = '0.1.0'
-__author__ = 'Molander'
+__author__ = 'Homelander'
