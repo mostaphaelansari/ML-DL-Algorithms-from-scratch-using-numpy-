@@ -1,3 +1,5 @@
+# Import our custom linear regression model
+from model import LinearRegression
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.datasets import make_regression
@@ -17,8 +19,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import our custom linear regression model
-from model import LinearRegression
+
+def validate_parameters(args):
+    """
+    Validate input parameters
+    
+    Parameters:
+    -----------
+    args : argparse.Namespace
+        Command line arguments
+        
+    Raises:
+    -------
+    ValueError
+        If parameters are invalid
+    """
+    if args.learning_rate <= 0:
+        raise ValueError("Learning rate must be positive")
+    if args.n_iterations <= 0:
+        raise ValueError("Number of iterations must be positive")
+    if args.n_samples <= 0:
+        raise ValueError("Number of samples must be positive")
+    if args.n_features <= 0:
+        raise ValueError("Number of features must be positive")
+    if args.noise < 0:
+        raise ValueError("Noise must be non-negative")
 
 def load_data(use_sklearn=True, n_samples=1000, n_features=1, noise=20, test_size=0.2, random_state=42, 
             data_path=None, output_dir='output'):
@@ -133,19 +158,19 @@ def plot_cost_history(cost_history, save_path='cost_history.png'):
         
         # Ensure directory exists
         save_dir = os.path.dirname(save_path)
-        if save_dir and not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
             
-        plt.savefig(save_path, dpi=300)
-        plt.close()
-        logger.info(f"Cost history plot saved to {save_path}")
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
     except Exception as e:
         logger.error(f"Error creating cost history plot: {e}")
+    finally:
+        plt.close()  # Ensure figure is closed to free memory
 
 
-def train_model(X_train, y_train, learning_rate=0.01, n_iterations=1000):
+def train_model(X_train, y_train, learning_rate=0.01, n_iterations=1000, tol=1e-4, patience=5):
     """
-    Train the linear regression model
+    Train the linear regression model with early stopping
     
     Parameters:
     -----------
@@ -156,7 +181,11 @@ def train_model(X_train, y_train, learning_rate=0.01, n_iterations=1000):
     learning_rate : float
         Learning rate for gradient descent
     n_iterations : int
-        Number of iterations for gradient descent
+        Maximum number of iterations for gradient descent
+    tol : float
+        Tolerance for early stopping
+    patience : int
+        Number of iterations to wait for improvement before early stopping
         
     Returns:
     --------
@@ -165,14 +194,38 @@ def train_model(X_train, y_train, learning_rate=0.01, n_iterations=1000):
     """
     start_time = time.time()
     
-    # Initialize and train the model
-    model = LinearRegression(learning_rate=learning_rate, n_iterations=n_iterations)
-    model.fit(X_train, y_train)
-    
-    training_time = time.time() - start_time
-    print(f"Training completed in {training_time:.2f} seconds")
-    
-    return model
+    try:
+        # Initialize and train the model
+        model = LinearRegression(learning_rate=learning_rate, n_iterations=n_iterations)
+        model.fit(X_train, y_train)
+        
+        # Early stopping logic
+        best_cost = float('inf')
+        patience_counter = 0
+        
+        for i in range(n_iterations):
+            y_pred = model._predict(X_train)
+            current_cost = model._compute_cost(y_train, y_pred)
+            model.cost_history.append(current_cost)
+            
+            if current_cost < best_cost - tol:
+                best_cost = current_cost
+                patience_counter = 0
+            else:
+                patience_counter += 1
+                
+            if patience_counter >= patience:
+                logger.info(f"Early stopping at iteration {i+1}")
+                break
+        
+        training_time = time.time() - start_time
+        logger.info(f"Training completed in {training_time:.2f} seconds")
+        
+        return model
+        
+    except Exception as e:
+        logger.error(f"Error during model training: {e}")
+        raise
 
 def save_model(model, save_path='linear_regression_model.joblib'):
     """
@@ -208,14 +261,23 @@ def main():
     parser.add_argument('--output_dir', type=str, default='output', help='Output directory')
     parser.add_argument('--data_path', type=str, default=None, help='Path to custom dataset')
     parser.add_argument('--random_state', type=int, default=42, help='Random seed')
+    parser.add_argument('--early_stopping_tol', type=float, default=1e-4, help='Tolerance for early stopping')
+    parser.add_argument('--early_stopping_patience', type=int, default=5, help='Patience for early stopping')
     args = parser.parse_args()
     
     try:
-        # Create output directory if it doesn't exist
-        output_dir = Path(args.output_dir)
-        output_dir.mkdir(exist_ok=True, parents=True)
+        # Validate parameters
+        validate_parameters(args)
         
-        logger.info(f"Starting model training with {args.n_iterations} iterations")
+        # Create output directory
+        output_dir = Path(args.output_dir)
+        try:
+            output_dir.mkdir(exist_ok=True, parents=True)
+        except Exception as e:
+            logger.error(f"Failed to create output directory: {e}")
+            raise
+        
+        logger.info(f"Starting model training with max {args.n_iterations} iterations")
         
         # Load data
         X_train, X_test, y_train, y_test = load_data(
@@ -227,13 +289,19 @@ def main():
             output_dir=args.output_dir
         )
         
-        # Train the model
+        # Train the model with early stopping
         model = train_model(
             X_train, 
             y_train, 
             learning_rate=args.learning_rate,
-            n_iterations=args.n_iterations
+            n_iterations=args.n_iterations,
+            tol=args.early_stopping_tol,
+            patience=args.early_stopping_patience
         )
+        
+        if model is None:
+            logger.error("Model training failed")
+            return
         
         # Plot cost history
         plot_cost_history(model.cost_history, save_path=output_dir / 'cost_history.png')
@@ -248,7 +316,10 @@ def main():
         
         # Save the model
         model_path = output_dir / 'linear_regression_model.joblib'
-        save_model(model, save_path=model_path)
+        try:
+            save_model(model, save_path=model_path)
+        except Exception as e:
+            logger.error(f"Failed to save model: {e}")
         
         # Save test data for later evaluation
         try:

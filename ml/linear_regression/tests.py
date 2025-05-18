@@ -49,7 +49,7 @@ def load_model(model_path = 'output/linear_regression_model.joblib'):
         logger.error(f"Error loading model : {e}")
         raise
 
-def load_test_data(X_test_path='output/X_test.npy', y_test_path='output/y_test.npy') -> tuple:
+def load_test_data(X_test_path: str = 'output/X_test.npy', y_test_path: str = 'output/y_test.npy') -> tuple:
     """
     Load test data with error handling
     
@@ -214,7 +214,7 @@ def main():
         logger.info(f"MAE: {metrics['mae']:.4f}")
         logger.info(f"R² Score: {metrics['r2']:.4f}")
         logger.info(f"Inference Time: {metrics['inference_time']:.6f} seconds")
-        logger.info(f"Model Size: {metrics['model_size'] / 1024:.2f} KB")
+        logger.info(f"Model Size: {metrics['model_size'] / 1024.0:.2f} KB")
         
         # If we have weights, print them
         if hasattr(model, 'weights'):
