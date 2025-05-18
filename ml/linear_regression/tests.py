@@ -1,17 +1,18 @@
 """Train a linear regression model with early stopping and data validation."""
-import numpy as np
-import matplotlib.pyplot as plt
-import joblib
+
 import argparse
+import logging
 import os
 import time
-import logging
 from pathlib import Path
 
-#local models
+import joblib
+import matplotlib.pyplot as plt
+import numpy as np
 
 from linear_regression.model import LinearRegression
-from utils.metrics import mean_squared_error , mean_absolute_error ,r2_score
+from utils.metrics import mean_squared_error, mean_absolute_error, r2_score
+
 
 
 #Set up logging

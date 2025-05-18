@@ -23,7 +23,7 @@ class LinearRegression:
         self.bias  = None
         self.cost_history = []
 
-    def fit(self,X :np.ndarray ,y :np.ndarray) -> None:
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "LinearRegression":
         """
         Train the linear regression model using gradient descent
         
@@ -53,9 +53,11 @@ class LinearRegression:
             db = (1/n_samples) * np.sum(y_predicted - y)            
             # Update parameters
             self.weights -= self.learning_rate * dw
-            self.bias -= self.learning_rate * db
-            # Compute cost for monitoring
-            cost = self._compute_cost(y, y_predicted)
+            self.bias    -= self.learning_rate * db
+
+            # Re-compute predictions **after** the update
+            y_updated = self.predict(X)
+            cost = self._compute_cost(y, y_updated)
             self.cost_history.append(cost)            
         return self
 
