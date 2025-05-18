@@ -1,3 +1,4 @@
+"""Module providing a Linear Regression model implementation."""
 import numpy as np
 
 class LinearRegression:
@@ -22,7 +23,7 @@ class LinearRegression:
         self.bias  = None
         self.cost_history = []
 
-    def fit(self,X :np.ndarray,y :np.ndarray) -> None:
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "LinearRegression":
         """
         Train the linear regression model using gradient descent
         
@@ -39,47 +40,28 @@ class LinearRegression:
             Returns self
         """
         # Initialize parameters
-        
+
         n_samples ,n_features = X.shape
         self.weights = np.zeros(n_features)
         self.bias = 0
-        
         # Gradient descent
         for _ in range(self.n_iterations):
             # Forward pass (predictions)
-            y_predicted = self._predict(X)
-            
+            y_predicted = self.predict(X)            
             # Compute gradients
             dw = (1/n_samples) * np.dot(X.T, (y_predicted - y))
-            db = (1/n_samples) * np.sum(y_predicted - y)
-            
+            db = (1/n_samples) * np.sum(y_predicted - y)            
             # Update parameters
             self.weights -= self.learning_rate * dw
-            self.bias -= self.learning_rate * db
-            
-            # Compute cost for monitoring
-            cost = self._compute_cost(y, y_predicted)
-            self.cost_history.append(cost)
-            
+            self.bias    -= self.learning_rate * db
+
+            # Re-compute predictions **after** the update
+            y_updated = self.predict(X)
+            cost = self._compute_cost(y, y_updated)
+            self.cost_history.append(cost)            
         return self
-    
+
     def predict(self, X):
-        """
-        Predict using the linear model
-        
-        Parameters:
-        -----------
-        X : numpy.ndarray
-            Input data
-            
-        Returns:
-        --------
-        numpy.ndarray
-            Predicted values
-        """
-        return self._predict(X)
-    
-    def _predict(self, X):
         """
         Make predictions with current weights and bias
         
@@ -94,7 +76,7 @@ class LinearRegression:
             Predicted values
         """
         return np.dot(X, self.weights) + self.bias
-    
+
     def _compute_cost(self, y_true, y_pred):
         """
         Compute Mean Squared Error cost
