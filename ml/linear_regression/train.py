@@ -1,16 +1,23 @@
-# Import our custom linear regression model
-from model import LinearRegression
-import numpy as np
+"""Train a linear regression model with early stopping and data validation.
+This script includes functions for loading data, training the model,
+plotting cost history, and saving the model.
+It also includes error handling and logging for better debugging."""
+
+import argparse
+import logging
+import os
+import time
+from pathlib import Path
+
+import joblib
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-import argparse
-import joblib
-import os
-import time
-import logging
-from pathlib import Path
+
+from linear_regression.model import LinearRegression
+
 
 # Set up logging
 logging.basicConfig(
@@ -204,7 +211,7 @@ def train_model(X_train, y_train, learning_rate=0.01, n_iterations=1000, tol=1e-
         patience_counter = 0
         
         for i in range(n_iterations):
-            y_pred = model._predict(X_train)
+            y_pred = model.predict(X_train)
             current_cost = model._compute_cost(y_train, y_pred)
             model.cost_history.append(current_cost)
             

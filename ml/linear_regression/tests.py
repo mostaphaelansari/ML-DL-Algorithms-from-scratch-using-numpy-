@@ -1,3 +1,4 @@
+"""Train a linear regression model with early stopping and data validation."""
 import numpy as np
 import matplotlib.pyplot as plt
 import joblib
