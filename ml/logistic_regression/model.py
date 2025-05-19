@@ -82,5 +82,5 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
 # Evaluate
-accuracy = accuracy_score(y_test, y_pred)
+accuracy = accuracy_score(y_test, y_pred) 
 print(f"Accuracy on test set: {accuracy:.4f}")
