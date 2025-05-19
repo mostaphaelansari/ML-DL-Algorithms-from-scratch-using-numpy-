@@ -1,4 +1,4 @@
-"""Train a linear regression model with early stopping and data validation."""
+"""Test a linear regression model with early stopping and data validation."""
 
 import argparse
 import logging
