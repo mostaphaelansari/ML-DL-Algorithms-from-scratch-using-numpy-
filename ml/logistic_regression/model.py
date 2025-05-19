@@ -1,5 +1,7 @@
-"""Logistic Regression Model
-This module implements a simple logistic regression model using gradient descent."""
+"""Logistic Regression Model.
+
+ This module implements a simple logistic regression model using gradient descent.
+"""
 
 # Import necessary libraries
 
