@@ -26,7 +26,14 @@ class LogisticRegression:
 
     def compute_loss(self, y, y_predicted):
         """
-        Binary cross-entropy loss function
+        Calculates the binary cross-entropy loss between true labels and predicted probabilities.
+        
+        Args:
+            y: True binary labels.
+            y_predicted: Predicted probabilities for the positive class.
+        
+        Returns:
+            The mean binary cross-entropy loss value.
         """
         epsilon = 1e-15  # avoid log(0)
         y_predicted = np.clip(y_predicted, epsilon, 1 - epsilon)
@@ -35,7 +42,11 @@ class LogisticRegression:
 
 def fit(self, X, y):
      """
-     Train the logistic regression model
+     Trains the logistic regression model using gradient descent.
+     
+     Initializes model parameters and iteratively updates weights and bias to minimize
+     binary cross-entropy loss. Tracks the loss value every 100 iterations in the
+     `cost_history` attribute.
      """
      num_samples, num_features = X.shape
      self.weights = np.zeros(num_features)
@@ -63,7 +74,13 @@ def fit(self, X, y):
 
     def predict_proba(self, X):
         """
-        Predict class probabilities for input features
+        Computes predicted probabilities for input features using the trained model.
+        
+        Args:
+            X: Input feature matrix.
+        
+        Returns:
+            An array of predicted probabilities for each input sample.
         """
         linear_model = np.dot(X, self.weights) + self.bias
         return self.sigmoid(linear_model)
