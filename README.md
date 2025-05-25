@@ -260,10 +260,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📈 Statistics
 
-![GitHub repo size](https://img.shields.io/github/repo-size/yourusername/ML-DL-Algorithms-from-scratch-using-numpy)
-![GitHub last commit](https://img.shields.io/github/last-commit/yourusername/ML-DL-Algorithms-from-scratch-using-numpy)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/ML-DL-Algorithms-from-scratch-using-numpy)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/yourusername/ML-DL-Algorithms-from-scratch-using-numpy)
+![GitHub repo size](https://img.shields.io/github/repo-size/mostaphaelansari/ML-DL-Algorithms-from-scratch-using-numpy)
+![GitHub last commit](https://img.shields.io/github/last-commit/mostaphaelansari/ML-DL-Algorithms-from-scratch-using-numpy)
+![GitHub issues](https://img.shields.io/github/issues/mostaphaelansari/ML-DL-Algorithms-from-scratch-using-numpy)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/mostaphaelansari/ML-DL-Algorithms-from-scratch-using-numpy)
 
 ---
 
