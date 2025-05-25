@@ -33,31 +33,33 @@ class LogisticRegression:
         loss = -np.mean(y * np.log(y_predicted) + (1 - y) * np.log(1 - y_predicted))
         return loss
 
-    def fit(self, X, y):
-        """
-        Train the logistic regression model
-        """
-        num_samples, num_features = X.shape
-        self.weights = np.zeros(num_features)
-        self.bias = 0
+def fit(self, X, y):
+     """
+     Train the logistic regression model
+     """
+     num_samples, num_features = X.shape
+     self.weights = np.zeros(num_features)
+     self.bias = 0
+    self.cost_history = []
 
-        for i in range(self.num_iterations):
-            # Linear combination
-            linear_model = np.dot(X, self.weights) + self.bias
-            y_predicted = self.sigmoid(linear_model)
+     for i in range(self.num_iterations):
+         # Linear combination
+         linear_model = np.dot(X, self.weights) + self.bias
+         y_predicted = self.sigmoid(linear_model)
 
-            # Compute gradients
-            dw = (1 / num_samples) * np.dot(X.T, (y_predicted - y))
-            db = (1 / num_samples) * np.sum(y_predicted - y)
+         # Compute gradients
+         dw = (1 / num_samples) * np.dot(X.T, (y_predicted - y))
+         db = (1 / num_samples) * np.sum(y_predicted - y)
 
-            # Update weights and bias
-            self.weights -= self.learning_rate * dw
-            self.bias -= self.learning_rate * db
+         # Update weights and bias
+         self.weights -= self.learning_rate * dw
+         self.bias -= self.learning_rate * db
 
-            # Optionally print loss
-            if i % 100 == 0:
-                loss = self.compute_loss(y, y_predicted)
-                print(f"Iteration {i}: Loss = {loss:.4f}")
+         # Optionally print loss
+         if i % 100 == 0:
+             loss = self.compute_loss(y, y_predicted)
+            self.cost_history.append(loss)
+             print(f"Iteration {i}: Loss = {loss:.4f}")
 
     def predict_proba(self, X):
         """
