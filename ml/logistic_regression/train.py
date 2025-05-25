@@ -28,17 +28,9 @@ logger = logging.getLogger(__name__)
 
 def validate_parameters(args):
     """
-    Validate input parameters
+    Validates command-line arguments for training parameters.
     
-    Parameters:
-    -----------
-    args : argparse.Namespace
-        Command line arguments
-        
-    Raises:
-    -------
-    ValueError
-        If parameters are invalid
+    Checks that learning rate, number of iterations, samples, and features are positive, and that noise is non-negative. Raises a ValueError if any parameter is invalid.
     """
     if args.learning_rate <= 0:
         raise ValueError("Learning rate must be positive")
@@ -54,21 +46,17 @@ def validate_parameters(args):
 
 def load_data(n_samples, n_features, noise):
     """
-    Load synthetic data for training and validation
+    Generates and preprocesses synthetic binary classification data for training and validation.
     
-    Parameters:
-    -----------
-    n_samples : int
-        Number of samples
-    n_features : int
-        Number of features
-    noise : float
-        Standard deviation of Gaussian noise added to the output
+    Creates a dataset with the specified number of samples, features, and label noise, splits it into training and validation sets, and standardizes the features. Returns the split datasets and the fitted scaler.
+    	
+    Args:
+    	n_samples: Number of samples to generate.
+    	n_features: Number of features for each sample.
+    	noise: Fraction of labels to randomly flip as noise.
     
     Returns:
-    --------
-    X_train, X_val, y_train, y_val : tuple of np.ndarray
-        Training and validation data
+    	A tuple containing standardized training features, validation features, training labels, validation labels, and the fitted StandardScaler.
     """
     logger.info("Loading data...")
     X, y = make_classification(
@@ -96,17 +84,15 @@ def load_data(n_samples, n_features, noise):
 
 def train_model(args):
     """
-    Train the logistic regression model with early stopping
+    Trains a logistic regression model with early stopping and returns the best model.
     
-    Parameters:
-    -----------
-    args : argparse.Namespace
-        Command line arguments containing training parameters
+    Validates input parameters, loads and preprocesses data, and iteratively trains the model for a specified number of epochs. Implements early stopping based on validation loss with a patience of 10 epochs. Tracks and saves the best model and scaler, plots training and validation loss curves, and logs final accuracy metrics.
+    
+    Args:
+        args: Command-line arguments specifying training and data generation parameters.
     
     Returns:
-    --------
-    model : LogisticRegression
-        Best trained logistic regression model
+        The best trained LogisticRegression model based on validation loss.
     """
     validate_parameters(args)
     X_train, X_val, y_train, y_val, scaler = load_data(args.n_samples, args.n_features, args.noise)
@@ -184,14 +170,13 @@ def train_model(args):
 
 def plot_training_curves(train_loss_history, val_loss_history):
     """
-    Plot training and validation loss curves
+    Plots and saves the training and validation loss curves over epochs.
     
-    Parameters:
-    -----------
-    train_loss_history : list
-        History of training loss values
-    val_loss_history : list
-        History of validation loss values
+    Args:
+        train_loss_history: List of training loss values recorded at each epoch.
+        val_loss_history: List of validation loss values recorded at each epoch.
+    
+    The plot is saved as "plots/loss_curves.png".
     """
     plt.figure(figsize=(10, 6))
     plt.plot(train_loss_history, label='Training Loss', color='blue')
@@ -209,7 +194,13 @@ def plot_training_curves(train_loss_history, val_loss_history):
 
 
 def parse_args():
-    """Parse command line arguments"""
+    """
+    Parses command-line arguments for logistic regression training parameters.
+    
+    Returns:
+        An argparse.Namespace object containing the parsed arguments for learning rate,
+        number of iterations, number of samples, number of features, and noise level.
+    """
     parser = argparse.ArgumentParser(description="Train logistic regression with early stopping")
     parser.add_argument('--learning_rate', type=float, default=0.01,
                        help='Learning rate for gradient descent (default: 0.01)')
@@ -225,7 +216,11 @@ def parse_args():
 
 
 def main():
-    """Main function to run the training pipeline"""
+    """
+    Runs the logistic regression training pipeline with argument parsing, logging, timing, and error handling.
+    
+    Parses command-line arguments, logs configuration, measures training duration, initiates model training, and logs completion time. Errors encountered during training are logged and re-raised.
+    """
     try:
         args = parse_args()
         logger.info("Starting logistic regression training pipeline...")
