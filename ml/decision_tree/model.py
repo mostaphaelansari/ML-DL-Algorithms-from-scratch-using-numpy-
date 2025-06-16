@@ -73,9 +73,31 @@ class DecisionTreeClassifier:
 
         elif self.criterion == 'entropy' :
             # Avoid log(0) by adding small epsilon
-            
+
             probabilities = probabilities[probabilities > 0]
             return -np.sum(probabilities * np.log2(pprobabilities))
+        
+    def information_gain(self, y, X_column, threshold) :
+        """
+        Calculate the information gain from a split
+        """
+        # Parent_impurity
+        parent_impurity = self.impurity(y)
+
+        # Create children 
+        left_idxs , right_idxs = self.spli(X_column , thershold)
+
+        if len(left_idxs) == 0 or len(right_idxs) ==0 :
+            return 0
+        # Calculate the weighted average impurity of children 
+        n = len(y)
+        n_l , n_r = len(left_idxs) , len(right_idxs)
+        e_l , e_r = self.impurity(y[left_idxs]) , self.impurity(y[right_idxs]) 
+        child_impurity = (n_l /n) * e_l +(n_r /n) *e_r
+
+        # Information gain 
+        information_gain = parent_impurity - child_impurity
+        return information_gain
         
     def best_split(self, X ,y) :
         """
@@ -92,7 +114,7 @@ class DecisionTreeClassifier:
             threshold = np.unique(X_column)
 
             for threshold in thresholds:
-                gain = self
+                gain = self.information_gain(y , X_column, threshold)
 
     def fit(self, X, y):
         """
