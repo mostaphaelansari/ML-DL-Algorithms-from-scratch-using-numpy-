@@ -43,7 +43,58 @@ class DecisionTreeClassifier:
         self.n_classes = None 
         self.n_features = None 
 
-    def fit(self, X ,y ) :
+    def most_common_label(self,y) :
+        """
+            Return the most common class label.
+        """
+        counter = Counter(y)
+        return Counter.most_common(1)[0][0]
+    
+    def Split(self,X_columnj, split_thresh) :
+        """
+            Split the data based on a thershold
+        """
+        left_idxs = np.argwhere(X_column <= split_thresh).flatten()
+        right_idxs = np.argwhere(X_column > split_thresh).flatten()
+        
+        return left_idxs , right_idxs
+
+    def impurity(self, y) :
+        """
+            Calculate the impurity (gini or entropy) of a node.
+        """
+        if len(y) == 0 :
+            return 0
+        class_counts = np.bincount(y)
+        probabilities = class_counts / len(y)
+
+        if self.criterion == 'gini' :
+            return 1.0 - np.sum(probabilities**2)
+
+        elif self.criterion == 'entropy' :
+            # Avoid log(0) by adding small epsilon
+            
+            probabilities = probabilities[probabilities > 0]
+            return -np.sum(probabilities * np.log2(pprobabilities))
+        
+    def best_split(self, X ,y) :
+        """
+            Find the best feature and threshold to split on.
+        """
+        best_gain = -1
+        best_feature , best_thershold = None , None
+
+        # Randomly select features to consider
+        feature_idxs = np.random.choice(self.n_feature , self.max_features, replace = False)
+
+        for feature_idx in feature_idxs :
+            x_column = X[:, feature_idx]
+            threshold = np.unique(X_column)
+
+            for threshold in thresholds:
+                gain = self
+
+    def fit(self, X, y):
         """
         Build a decision tree classifier from the training set (X, y).
         
@@ -54,11 +105,13 @@ class DecisionTreeClassifier:
         y : array-like of shape (n_samples,)
             The target values (class labels).
         """
-
-        self.n_classes = len(np.unique(y)) 
+        X = np.array(X)
+        y = np.array(y)
+        
+        self.n_classes = len(np.unique(y))
         self.n_features = X.shape[1]
-
-        # Determine max_features if not specified 
+        
+        # Determine max_features if not specified
         if self.max_features is None:
             self.max_features = self.n_features
         elif isinstance(self.max_features, str):
@@ -66,3 +119,6 @@ class DecisionTreeClassifier:
                 self.max_features = int(np.sqrt(self.n_features))
             elif self.max_features == 'log2':
                 self.max_features = int(np.log2(self.n_features))
+        
+        self.root = self.build_tree(X, y, depth=0)
+
