@@ -159,6 +159,33 @@ class DecisionTreeClassifier:
 
         return Node(best_feature , best_threshold,right)
 
+    def fit(self , X, y) :
+        """
+        Build a decision tree classifier from the training set (X, y)
 
+        Parameters:
+        
+        -----------
+        X : array-like of shape (n_samples, n_features)
+            The training input samples.
+        y : array-like of shape (n_samples,)
+            the target values (class labels).
+        """
+        X = np.array(X)
+        y = np.array(y)
+
+        self.n_classes = len(np.unique(y))
+        self.n_features = X.shape[1]
+
+        # Determine max_features if not specified 
+        if self.max_features is None :
+            self.max_features = self.n_features
+        elif isinstance(self.max_features, str):
+            if self.max_features == 'sqrt'  :
+                self.max_features = int(np.sqrt(self.n_features))
+            elif self.max_features == 'log2' :
+                self.max_features = int(np.log2(self.n_features))
+        
+        self.root = self.build_tree(X,y,depth=0)
    
 
