@@ -73,9 +73,31 @@ class DecisionTreeClassifier:
 
         elif self.criterion == 'entropy' :
             # Avoid log(0) by adding small epsilon
-            
+
             probabilities = probabilities[probabilities > 0]
             return -np.sum(probabilities * np.log2(pprobabilities))
+        
+    def information_gain(self, y, X_column, threshold) :
+        """
+        Calculate the information gain from a split
+        """
+        # Parent_impurity
+        parent_impurity = self.impurity(y)
+
+        # Create children 
+        left_idxs , right_idxs = self.spli(X_column , thershold)
+
+        if len(left_idxs) == 0 or len(right_idxs) ==0 :
+            return 0
+        # Calculate the weighted average impurity of children 
+        n = len(y)
+        n_l , n_r = len(left_idxs) , len(right_idxs)
+        e_l , e_r = self.impurity(y[left_idxs]) , self.impurity(y[right_idxs]) 
+        child_impurity = (n_l /n) * e_l +(n_r /n) *e_r
+
+        # Information gain 
+        information_gain = parent_impurity - child_impurity
+        return information_gain
         
     def best_split(self, X ,y) :
         """
@@ -92,33 +114,51 @@ class DecisionTreeClassifier:
             threshold = np.unique(X_column)
 
             for threshold in thresholds:
-                gain = self
+                gain = self.information_gain(y , X_column, threshold)
 
-    def fit(self, X, y):
+                if gain > best_gain :
+                    best_gain = gain 
+                    best_feature = feature_idx
+                    best_threshold = threshold 
+
+        return best_feature , best_threshold
+
+
+    def build_tree(self, X , y , depth) :
         """
-        Build a decision tree classifier from the training set (X, y).
-        
-        Parameters:
-        -----------
-        X : array-like of shape (n_samples, n_features)
-            The training input samples.
-        y : array-like of shape (n_samples,)
-            The target values (class labels).
+            Recursively build the decision tree.
         """
-        X = np.array(X)
-        y = np.array(y)
+        n_samples , n_features = X.shape
+        n_labels = len(np.unique(y))
+
+        # Stopping criteria
+        if (self.max_depth is not None and depth >= self.max_depth) or \
+            n_labels == 1 or \
+            n_samples < self.min_samples_split :
+                leaf_value = self.most_common_label(y)
+                return Node(value = leaf_value)
         
-        self.n_classes = len(np.unique(y))
-        self.n_features = X.shape[1]
-        
-        # Determine max_features if not specified
-        if self.max_features is None:
-            self.max_features = self.n_features
-        elif isinstance(self.max_features, str):
-            if self.max_features == 'sqrt':
-                self.max_features = int(np.sqrt(self.n_features))
-            elif self.max_features == 'log2':
-                self.max_features = int(np.log2(self.n_features))
-        
-        self.root = self.build_tree(X, y, depth=0)
+        # FInd the best split 
+        best_feature , best_thresold = self.best_split(X, y)
+
+        if best_feature is  None :
+            leaf_value = self.most_cimmon_label(y)
+            return Node(value=leaf_value)
+
+        # Split the data 
+        left_idxs , right_idxs = self.split(X[:, best_feature], best_threshold)
+
+        # Check minimum samples per leaf 
+        if len(left_idxs) < self.min_samples_leaf or len(right_idxs) < self.min_samples_leaf :
+            leaf_value = self.most_common_label(y)
+            return Node(value=leaf_value)
+
+        # creat child Nodes 
+        left = self.build_tree(X[left_idxs, :], y[left_idxs], depth + 1)
+        right = self.build_tree(X[right_idxs, :], y[right_idxs],depth + 1)
+
+        return Node(best_feature , best_threshold,right)
+
+
+   
 
