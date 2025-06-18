@@ -220,9 +220,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Contributors** - Thanks to all who have contributed code, documentation, and feedback
 
 
-
-![GitHub pull requests](https://img.shields.io/github/issues-pr/mostaphaelansari/ML-DL-Algorithms-from-scratch-using-numpy)
-
 ---
 
 ⭐ **Star this repository if you find it helpful!** ⭐
