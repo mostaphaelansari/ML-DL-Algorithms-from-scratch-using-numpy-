@@ -13,5 +13,5 @@ from .model import LinearRegression
 __all__ = ['LinearRegression']
 
 __version__ = '0.1.0'
-__author__ = 'Homelander'
-__license__ = 'MIT'  
+__author__ = 'Gremmy Thoumeaux'
+__license__ = 'MIT'
